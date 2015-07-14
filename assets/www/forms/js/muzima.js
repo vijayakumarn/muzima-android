@@ -742,10 +742,20 @@ $(document).ready(function () {
 
     var serializeNestedConcepts = function ($form) {
         var result = {};
-        var parentDivs = $form.find('div[data-concept]').filter(':visible');
-        $.each(parentDivs, function (i, element) {
-            var $allConcepts = $(element).find('*[data-concept]');
-            result = pushIntoArray(result, $(element).attr('data-concept'), jsonifyConcepts($allConcepts));
+        var allParentDivs = $form.find('div[data-concept]').filter(':visible');
+        var nestedParentDivs = allParentDivs.find('div[data-concept]');
+        var rootParentDivs = allParentDivs.not(nestedParentDivs);
+        $.each(rootParentDivs, function (i, element) {
+            var $childDivs = $(element).find('div[data-concept]');
+            if($childDivs.length > 0){
+                var subResult1 = serializeNestedConcepts($(element));
+                var subResult2 = serializeConcepts($(element));
+                var subResultCombined = $.extend({}, subResult1,subResult2);
+                result = pushIntoArray(result, $(element).attr('data-concept'), subResultCombined);
+            } else {
+                var $allConcepts = $(element).find('*[data-concept]');
+                result = pushIntoArray(result, $(element).attr('data-concept'), jsonifyConcepts($allConcepts));
+            }
         });
         return result;
     };
@@ -754,7 +764,8 @@ $(document).ready(function () {
         var object = {};
         var allConcepts = $form.find('*[data-concept]').filter(':visible');
         $.each(allConcepts, function (i, element) {
-            if ($(element).closest('.section, .concept-set').attr('data-concept') == undefined) {
+            var $closestElement = $(element).closest('.section, .concept-set', $form);
+            if ($form.is($closestElement) || $closestElement.attr('data-concept') == undefined ) {
                 var jsonifiedConcepts = jsonifyConcepts($(element));
                 if (JSON.stringify(jsonifiedConcepts) != '{}' && jsonifiedConcepts != "") {
                     $.each(jsonifiedConcepts, function (key, value) {
